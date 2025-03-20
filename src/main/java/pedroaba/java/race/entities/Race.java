@@ -1,4 +1,4 @@
-package pedroaba.java.race.domain;
+package pedroaba.java.race.entities;
 
 import pedroaba.java.race.Beetle;
 

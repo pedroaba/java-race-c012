@@ -1,12 +1,12 @@
 package pedroaba.java.race;
 
-import pedroaba.java.race.domain.Car;
+import pedroaba.java.race.entities.Car;
+import pedroaba.java.race.events.Dispatcher;
 
 public class Beetle extends Car {
     private static final double DEFAULT_SPEED = 1.0;
-    private static final double DEFAULT_ACCELERATION = 1.0;
 
-    public Beetle() {
-        super(Beetle.DEFAULT_SPEED, Beetle.DEFAULT_ACCELERATION);
+    public Beetle(Dispatcher<Object> dispatcher) {
+        super(Beetle.DEFAULT_SPEED, dispatcher);
     }
 }
