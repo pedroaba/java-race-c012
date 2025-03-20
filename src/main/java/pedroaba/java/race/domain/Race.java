@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Race {
     private int quantityOfCars = 5;
-    private List<Car> cars = new ArrayList<>();
+    private final List<Car> cars = new ArrayList<>();
 
     public Race(int quantityOfCars) {
         this.quantityOfCars = quantityOfCars;
