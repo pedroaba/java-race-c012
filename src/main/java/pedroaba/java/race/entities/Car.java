@@ -1,29 +1,69 @@
 package pedroaba.java.race.entities;
 
+import pedroaba.java.race.constants.Config;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.Dispatcher;
+import pedroaba.java.race.events.MovementEvent;
+import pedroaba.java.race.events.RaceFinishEvent;
 
-public abstract class Car {
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+
+public abstract class Car extends Thread {
     private final Dispatcher<Object> dispatcher;
-    private double speed;
+    private final double speed;
 
-    public Car(double speed, Dispatcher<Object> dispatcher) {
-        if (speed < 0) {
-            throw new IllegalArgumentException("Speed/Acceleration must be greater than 0");
+    private final Integer trackLength;
+
+    public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength) {
+        if (speed <= 0) {
+            throw new IllegalArgumentException("Speed must be greater than 0");
         }
 
+        this.trackLength = trackLength;
         this.speed = speed;
-
-        // Event bus controller
         this.dispatcher = dispatcher;
     }
 
+    public double getSpeed() {
+        return speed;
+    }
+
+    public Dispatcher<Object> getDispatcher() {
+        return dispatcher;
+    }
+
+    // Método que simula o movimento e dispara eventos
     public void move(double currentPosition) {
-        double newPosition = currentPosition;
-        if (currentPosition > 0) {
-            newPosition += speed;
+        MovementEvent movementEvent = new MovementEvent(this, GameEventName.RUNNING, this.speed, (int) currentPosition);
+
+        dispatcher.emmit(GameEventName.RUNNING, movementEvent);
+    }
+
+    @Override
+    public void run() {
+        double position = 0;
+        while (position < trackLength) {
+            position += getSpeed();
+            move(position);
+
+            try {
+                Thread.sleep(Config.TIME_BETWEEN_EACH_MOVEMENT);
+            } catch (InterruptedException e) {
+                e.fillInStackTrace();
+            }
         }
 
-        dispatcher.emmit(GameEventName.RUNNING, newPosition);
+        LocalDateTime now = LocalDateTime.now();
+        ZoneId zoneId = ZoneId.systemDefault();
+        long epochSeconds = now.atZone(zoneId).toEpochSecond();
+
+        RaceFinishEvent raceFinishEvent = new RaceFinishEvent(this, epochSeconds);
+        getDispatcher().emmit(GameEventName.FINISHED, raceFinishEvent);
+    }
+
+    @Override
+    public String toString() {
+        return "[CarThreadId: %d | Car Type: %s]".formatted(Thread.currentThread().threadId(), this.getClass().getSimpleName());
     }
 }
