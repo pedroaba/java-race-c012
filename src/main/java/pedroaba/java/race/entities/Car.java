@@ -133,4 +133,12 @@ public abstract class Car extends Thread {
             power = null;
         }
     }
+
+    public String getActivePowerName() {
+        return power != null ? power.getClass().getSimpleName() : null;
+    }
+
+    public boolean hasPower() {
+        return power != null;
+    }
 }

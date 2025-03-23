@@ -155,6 +155,7 @@ public class ThreadRacing extends PApplet {
             CarVisual visual = carVisuals.get(threadId);
             visual.setPosition(movementEvent.position());
             visual.setSpeed(movementEvent.speed());
+            visual.setActivePower(car.getActivePowerName()); // Poder ativo
         });
 
         // Listener para fim de corrida de um carro
@@ -331,23 +332,23 @@ public class ThreadRacing extends PApplet {
                 text("✓", xPos + 30, yPos - 15);
             }
 
-            // TODO: desenhar com base nos poderes
-            if (random(1) < 0.05 && !carVisual.finished) {
+            if (carVisual.activePower != null && !carVisual.finished) {
                 PImage powerImg;
-                int powerType = (int)random(3);
 
-                if (powerType == 0) {
+                if (carVisual.activePower.equals("Banana")) {
                     powerImg = bananaImg;
                     fill(255, 255, 0);
                     text("Banana!", xPos, yPos - 25);
-                } else if (powerType == 1) {
+                } else if (carVisual.activePower.equals("Boost")) {
                     powerImg = boostImg;
                     fill(0, 0, 255);
                     text("Boost!", xPos, yPos - 25);
-                } else {
+                } else if (carVisual.activePower.equals("RedShell")) {
                     powerImg = shellImg;
                     fill(255, 0, 0);
                     text("Red Shell!", xPos, yPos - 25);
+                } else {
+                    continue; // Poder desconhecido, não mostrar
                 }
 
                 image(powerImg, xPos - 25, yPos - 15);
@@ -400,6 +401,7 @@ public class ThreadRacing extends PApplet {
         private double position = 0;
         private double speed;
         private boolean finished = false;
+        private String activePower = null;
 
         public CarVisual(String name, long threadId, PImage image, int laneIndex, double speed) {
             this.name = name;
@@ -419,6 +421,10 @@ public class ThreadRacing extends PApplet {
 
         public void setFinished(boolean finished) {
             this.finished = finished;
+        }
+
+        public void setActivePower(String powerName) {
+            this.activePower = powerName;
         }
     }
 }
