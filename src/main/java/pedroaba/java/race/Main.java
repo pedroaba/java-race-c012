@@ -4,6 +4,7 @@ import pedroaba.java.race.entities.Race;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
 import pedroaba.java.race.utils.FormatEpochSecondToString;
+import processing.core.PApplet;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     public static void main(String[] args) {
+        PApplet.main("pedroaba.java.race.ThreadRacing");
+
         List<RaceFinishEvent> raceFinishEvents = new ArrayList<>();
         Dispatcher<Object> dispatcher = new Dispatcher<>("RaceDispatcher");
 
