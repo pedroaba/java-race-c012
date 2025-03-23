@@ -127,7 +127,7 @@ public abstract class Car extends Thread {
 
     public void usePower() {
         if (power != null) {
-            System.out.printf("[%s] Using power [%s]%n", this.toString(), power.getClass().getSimpleName());
+            System.out.printf("[%s] Using power [%s]%n", this, power.getClass().getSimpleName());
 
             power.activate();
             power = null;

@@ -26,19 +26,13 @@ public class Race {
             int choice = new Random().nextInt(3);
             switch (choice) {
                 case 0:
-                    cars.add(new Beetle(dispatcher, trackLength, (event) -> {
-                        this.applyPower((Car) event);
-                    }));
+                    cars.add(new Beetle(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
                     break;
                 case 1:
-                    cars.add(new Ferrari(dispatcher, trackLength, (event) -> {
-                        this.applyPower((Car) event);
-                    }));
+                    cars.add(new Ferrari(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
                     break;
                 case 2:
-                    cars.add(new Lamborghini(dispatcher, trackLength, (event) -> {
-                        this.applyPower((Car) event);
-                    }));
+                    cars.add(new Lamborghini(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
                     break;
             }
         }
