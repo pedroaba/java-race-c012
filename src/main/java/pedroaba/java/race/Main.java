@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     public static void main(String[] args) {
-        PApplet.main("pedroaba.java.race.ThreadRacing");
+        PApplet.main("pedroaba.java.race.ui.ThreadRacing");
 
         List<RaceFinishEvent> raceFinishEvents = new ArrayList<>();
         Dispatcher<Object> dispatcher = new Dispatcher<>("RaceDispatcher");
