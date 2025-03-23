@@ -1,5 +1,8 @@
-package pedroaba.java.race;
+package pedroaba.java.race.ui;
 
+import pedroaba.java.race.Beetle;
+import pedroaba.java.race.Ferrari;
+import pedroaba.java.race.constants.Config;
 import pedroaba.java.race.entities.Car;
 import pedroaba.java.race.entities.Race;
 import pedroaba.java.race.enums.GameEventName;
@@ -13,15 +16,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ThreadRacing extends PApplet {
-    private static final int WIDTH = 1200;
-    private static final int HEIGHT = 800;
-    private static final int TRACK_Y_START = 150;
-    private static final int LANE_HEIGHT = 80;
-    private static final int FINISH_LINE_X = 900;
-    private static final int CAR_WIDTH = 40;
-    private static final int CAR_HEIGHT = 82;
 
+public class ThreadRacing extends PApplet {
     private Race race;
     private Dispatcher<Object> dispatcher;
     private Map<Long, CarVisual> carVisuals = new ConcurrentHashMap<>();
@@ -43,15 +39,16 @@ public class ThreadRacing extends PApplet {
 
     private PFont font;
 
+
     @Override
     public void settings() {
-        size(WIDTH, HEIGHT);
+        size(Config.WIDTH, Config.HEIGHT);
     }
 
     @Override
     public void setup() {
-        frameRate(30);
-        background(255);
+        frameRate(60);
+        background(0);
         smooth();
 
         // Carregando fontes
@@ -63,9 +60,9 @@ public class ThreadRacing extends PApplet {
         lamboImg = loadImage("src/images/Carro_3.png");    // Lamborghini
 
         // Redimensionando imagens
-        if (ferrariImg != null) ferrariImg.resize(CAR_WIDTH, CAR_HEIGHT);
-        if (beetleImg != null) beetleImg.resize(CAR_WIDTH, CAR_HEIGHT);
-        if (lamboImg != null) lamboImg.resize(CAR_WIDTH, CAR_HEIGHT);
+        if (ferrariImg != null) ferrariImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
+        if (beetleImg != null) beetleImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
+        if (lamboImg != null) lamboImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
 
         // Icones de poderes
         bananaImg = createPowerImage(color(255, 255, 0)); // Banana
@@ -73,6 +70,63 @@ public class ThreadRacing extends PApplet {
         shellImg = createPowerImage(color(255, 0, 0));    // Shell
 
         setupRace();
+    }
+
+    @Override
+    public void draw() {
+        background(240);
+        updateCarPositions();
+
+        // Titulo
+        fill(0);
+        textSize(32);
+        textAlign(CENTER, CENTER);
+        text("Thread Racing", Config.WIDTH / 2, 40);
+
+        // Countdown
+        if (countdownStarted) {
+            long currentTime = System.currentTimeMillis();
+
+            // Atualiza a cada segundo
+            if (currentTime - lastCountdownTime >= 1000) {
+                countdownValue--;
+                lastCountdownTime = currentTime;
+
+                // Inicia a corrida quando chegar em 0
+                if (countdownValue < 0) {
+                    countdownStarted = false;
+
+                    // Inicia a corrida em uma thread separada para não bloquear o Processing :v
+                    new Thread(() -> race.race()).start();
+                }
+            }
+
+            // Desenha o countdown no centro da tela
+            if (countdownValue >= 0) {
+                fill(255, 0, 0);
+                textSize(120);
+                textAlign(CENTER, CENTER);
+
+                if (countdownValue == 0) {
+                    text("GO!", Config.WIDTH / 2, Config.HEIGHT / 2);
+                } else {
+                    text(countdownValue, Config.WIDTH / 2, Config.HEIGHT / 2);
+                }
+            }
+        } else {
+            drawTrack();
+        }
+
+        // Desenha carros
+        drawCars();
+
+        // Desenha resultados
+        if (raceFinished) {
+            drawResults();
+        }
+
+        // Desenha log da corrida
+        drawMessages();
     }
 
     private PImage createPowerImage(int powerColor) {
@@ -204,76 +258,19 @@ public class ThreadRacing extends PApplet {
         dispatcher.addListener(allFinishListener);
     }
 
-    @Override
-    public void draw() {
-        background(240);
-        updateCarPositions();
-
-        // Titulo
-        fill(0);
-        textSize(32);
-        textAlign(CENTER, CENTER);
-        text("Thread Racing", WIDTH / 2, 40);
-
-        // Countdown
-        if (countdownStarted) {
-            long currentTime = System.currentTimeMillis();
-
-            // Atualiza a cada segundo
-            if (currentTime - lastCountdownTime >= 1000) {
-                countdownValue--;
-                lastCountdownTime = currentTime;
-
-                // Inicia a corrida quando chegar em 0
-                if (countdownValue < 0) {
-                    countdownStarted = false;
-
-                    // Inicia a corrida em uma thread separada para não bloquear o Processing :v
-                    new Thread(() -> race.race()).start();
-                }
-            }
-
-            // Desenha o countdown no centro da tela
-            if (countdownValue >= 0) {
-                fill(255, 0, 0);
-                textSize(120);
-                textAlign(CENTER, CENTER);
-
-                if (countdownValue == 0) {
-                    text("GO!", WIDTH / 2, HEIGHT / 2);
-                } else {
-                    text(countdownValue, WIDTH / 2, HEIGHT / 2);
-                }
-            }
-        } else {
-            drawTrack();
-        }
-
-        // Desenha carros
-        drawCars();
-
-        // Desenha resultados
-        if (raceFinished) {
-            drawResults();
-        }
-
-        // Desenha log da corrida
-        drawMessages();
-    }
-
     private void drawTrack() {
         // Fundo da pista
         fill(100);
-        rect(50, TRACK_Y_START - 20, WIDTH - 100, LANE_HEIGHT * carVisuals.size() + 40);
+        rect(50, Config.TRACK_Y_START - 20, Config.WIDTH - 100, Config.LANE_HEIGHT * carVisuals.size() + 40);
 
         // Linha de largada
         stroke(255);
-        line(60, TRACK_Y_START - 20, 60, TRACK_Y_START + LANE_HEIGHT * carVisuals.size() + 20);
+        line(60, Config.TRACK_Y_START - 20, 60, Config.TRACK_Y_START + Config.LANE_HEIGHT * carVisuals.size() + 20);
 
         // Linha de chegada
         stroke(255);
         fill(255, 0, 0, 100);
-        rect(FINISH_LINE_X, TRACK_Y_START - 20, 10, LANE_HEIGHT * carVisuals.size() + 40);
+        rect(Config.FINISH_LINE_X, Config.TRACK_Y_START - 20, 10, Config.LANE_HEIGHT * carVisuals.size() + 40);
 
         // Lanes
         noStroke();
@@ -283,14 +280,14 @@ public class ThreadRacing extends PApplet {
             } else {
                 fill(90);
             }
-            rect(60, TRACK_Y_START + i * LANE_HEIGHT, FINISH_LINE_X - 60, LANE_HEIGHT);
+            rect(60, Config.TRACK_Y_START + i * Config.LANE_HEIGHT, Config.FINISH_LINE_X - 60, Config.LANE_HEIGHT);
 
             // Marcadores de distancia
             stroke(255, 255, 255, 100);
             for (int mark = 0; mark < 10; mark++) {
-                float x = 60 + (FINISH_LINE_X - 60) * mark / 10.0f;
-                line(x, TRACK_Y_START + i * LANE_HEIGHT,
-                        x, TRACK_Y_START + (i + 1) * LANE_HEIGHT);
+                float x = 60 + (Config.FINISH_LINE_X - 60) * mark / 10.0f;
+                line(x, Config.TRACK_Y_START + i * Config.LANE_HEIGHT,
+                        x, Config.TRACK_Y_START + (i + 1) * Config.LANE_HEIGHT);
             }
             noStroke();
         }
@@ -299,9 +296,9 @@ public class ThreadRacing extends PApplet {
     private void drawCars() {
         for (CarVisual carVisual : carVisuals.values()) {
             // Calcula X baseada na posição da corrida (0 a 100)
-            float trackLength = FINISH_LINE_X - 60;
+            float trackLength = Config.FINISH_LINE_X - 60;
             float xPos = 60 + min((float)(carVisual.displayPosition / 100.0 * trackLength), trackLength);
-            float yPos = TRACK_Y_START + carVisual.laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
+            float yPos = Config.TRACK_Y_START + carVisual.laneIndex * Config.LANE_HEIGHT + Config.LANE_HEIGHT / 2;
 
             // Sombra do carro
             fill(0, 0, 0, 50);
@@ -365,8 +362,8 @@ public class ThreadRacing extends PApplet {
         int panelHeight = headerHeight + (finishEvents.size() * rowHeight) + 20;
 
         // Posiciona o painel no centro da tela
-        int panelX = (WIDTH - panelWidth) / 2;
-        int panelY = (HEIGHT - panelHeight) / 2;
+        int panelX = (Config.WIDTH - panelWidth) / 2;
+        int panelY = (Config.HEIGHT - panelHeight) / 2;
 
         // Desenha o fundo do painel com borda
         fill(255, 255, 255, 230);
@@ -441,15 +438,21 @@ public class ThreadRacing extends PApplet {
     private void drawMessages() {
         // Mensagens da corrida no canto inferior esquerdo
         fill(255, 255, 255, 200);
-        rect(10, HEIGHT - 30 - raceMessages.size() * 20, 450, 20 + raceMessages.size() * 20);
+        rect(10, Config.HEIGHT - 30 - raceMessages.size() * 20, 450, 20 + raceMessages.size() * 20);
 
         fill(0);
         textAlign(LEFT);
         textSize(14);
         synchronized (raceMessages) {
             for (int i = 0; i < raceMessages.size(); i++) {
-                text(raceMessages.get(i), 20, HEIGHT - 20 - (raceMessages.size() - i - 1) * 20);
+                text(raceMessages.get(i), 20, Config.HEIGHT - 20 - (raceMessages.size() - i - 1) * 20);
             }
+        }
+    }
+
+    private void updateCarPositions() {
+        for (CarVisual carVisual : carVisuals.values()) {
+            carVisual.updateDisplayPosition();
         }
     }
 
@@ -492,18 +495,8 @@ public class ThreadRacing extends PApplet {
         }
 
         public void updateDisplayPosition() {
-            // Interpola linearmente entre a posição atual e a posição alvo
-            this.displayPosition = lerp(this.displayPosition, this.targetPosition, this.lerpFactor);
-        }
-
-        private double lerp(double start, double end, float t) {
-            return start + t * (end - start);
+            this.displayPosition = lerp((float) this.displayPosition, (float) this.targetPosition, this.lerpFactor);
         }
     }
 
-    private void updateCarPositions() {
-        for (CarVisual carVisual : carVisuals.values()) {
-            carVisual.updateDisplayPosition();
-        }
-    }
 }
