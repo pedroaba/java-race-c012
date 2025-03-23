@@ -6,8 +6,8 @@ import pedroaba.java.race.Lamborghini;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.AllCarFinishEvent;
 import pedroaba.java.race.events.Dispatcher;
-import pedroaba.java.race.events.Listener;
 import pedroaba.java.race.events.RaceStartedEvent;
+import pedroaba.java.race.utils.ApplyPowerTo;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -16,51 +16,48 @@ import java.util.List;
 import java.util.Random;
 
 public class Race {
-    private final int quantityOfCars;
     private final List<Car> cars = new ArrayList<>();
-    private final Integer trackLength;
-
-    private Boolean raceFinished = false;
     private final Dispatcher<Object> dispatcher;
 
-    private Car winner = null;
-
-    // Agora o construtor recebe o dispatcher e o listener para repassar aos carros
     public Race(int quantityOfCars, Dispatcher<Object> dispatcher, int trackLength) {
-        this.quantityOfCars = quantityOfCars;
-        this.trackLength = trackLength;
         this.dispatcher = dispatcher;
 
         for (int i = 0; i < quantityOfCars; i++) {
             int choice = new Random().nextInt(3);
             switch (choice) {
                 case 0:
-                    cars.add(new Beetle(dispatcher, trackLength));
+                    cars.add(new Beetle(dispatcher, trackLength, (event) -> {
+                        this.applyPower((Car) event);
+                    }));
                     break;
                 case 1:
-                    cars.add(new Ferrari(dispatcher, trackLength));
+                    cars.add(new Ferrari(dispatcher, trackLength, (event) -> {
+                        this.applyPower((Car) event);
+                    }));
                     break;
                 case 2:
-                    cars.add(new Lamborghini(dispatcher, trackLength));
+                    cars.add(new Lamborghini(dispatcher, trackLength, (event) -> {
+                        this.applyPower((Car) event);
+                    }));
                     break;
             }
         }
     }
 
-    public double getTrackLength() {
-        return trackLength;
-    }
+    private void applyPower(Car carToAddPower) {
+        List<Car> filteredListToRemoveCarThatReceiveThePower = cars.stream().filter(c -> !c.equals(carToAddPower) && !c.isFinishedRace()).toList();
+        if (filteredListToRemoveCarThatReceiveThePower.isEmpty()) {
+            ApplyPowerTo.applyBoost(carToAddPower);
 
-    public boolean isRaceOver() {
-        return raceFinished;
-    }
+            return;
+        }
 
-    public int getQuantityOfCars() {
-        return quantityOfCars;
-    }
+        Random random =  new Random();
 
-    public List<Car> getCars() {
-        return cars;
+        random.setSeed(System.currentTimeMillis());
+        int indexOfTargetCar = random.nextInt(filteredListToRemoveCarThatReceiveThePower.size());
+
+        ApplyPowerTo.apply(carToAddPower, cars.get(indexOfTargetCar));
     }
 
     public void race() {

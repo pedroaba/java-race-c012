@@ -1,12 +1,13 @@
 package pedroaba.java.race.powers;
 
 import pedroaba.java.race.entities.Car;
+import pedroaba.java.race.utils.Sleeper;
 
 public class Boost extends Power {
-    private int speedIncrease;
-    private long duration; // in milliseconds
+    private final double speedIncrease;
+    private final long duration; // in milliseconds
 
-    public Boost(Car target, int speedIncrease, long duration) {
+    public Boost(Car target, double speedIncrease, long duration) {
         super(target);
         this.speedIncrease = speedIncrease;
         this.duration = duration;
@@ -15,11 +16,8 @@ public class Boost extends Power {
     @Override
     public void activate() {
         target.increaseSpeed(speedIncrease);
-        try {
-            Thread.sleep(duration);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        target.increaseSpeed(-speedIncrease); // Reset speed after boost
+        Sleeper.sleep(duration);
+
+        target.increaseSpeed(-speedIncrease);
     }
 }

@@ -66,7 +66,7 @@ public class Main {
         dispatcher.addListener(allCarFinishEventListener);
         dispatcher.addListener(startRaceListener);
 
-        Race race = new Race(5, dispatcher, 10);
+        Race race = new Race(5, dispatcher, 100);
         race.race();
     }
 }
