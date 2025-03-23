@@ -207,6 +207,7 @@ public class ThreadRacing extends PApplet {
     @Override
     public void draw() {
         background(240);
+        updateCarPositions();
 
         // Titulo
         fill(0);
@@ -299,7 +300,7 @@ public class ThreadRacing extends PApplet {
         for (CarVisual carVisual : carVisuals.values()) {
             // Calcula X baseada na posição da corrida (0 a 100)
             float trackLength = FINISH_LINE_X - 60;
-            float xPos = 60 + min((float)(carVisual.position / 100.0 * trackLength), trackLength);
+            float xPos = 60 + min((float)(carVisual.displayPosition / 100.0 * trackLength), trackLength);
             float yPos = TRACK_Y_START + carVisual.laneIndex * LANE_HEIGHT + LANE_HEIGHT / 2;
 
             // Sombra do carro
@@ -357,24 +358,83 @@ public class ThreadRacing extends PApplet {
     }
 
     private void drawResults() {
-        fill(255, 255, 255, 200);
-        rect(WIDTH - 300, 80, 270, 30 + finishEvents.size() * 20);
+        // Configurações do painel de resultados
+        int panelWidth = 400;
+        int headerHeight = 50;
+        int rowHeight = 30;
+        int panelHeight = headerHeight + (finishEvents.size() * rowHeight) + 20;
 
-        fill(0);
-        textAlign(LEFT);
-        textSize(16);
-        text("Resultados:", WIDTH - 280, 100);
+        // Posiciona o painel no centro da tela
+        int panelX = (WIDTH - panelWidth) / 2;
+        int panelY = (HEIGHT - panelHeight) / 2;
 
+        // Desenha o fundo do painel com borda
+        fill(255, 255, 255, 230);
+        stroke(50);
+        strokeWeight(2);
+        rect(panelX, panelY, panelWidth, panelHeight, 10);
+        noStroke();
+
+        // Cabeçalho com fundo destacado
+        fill(30, 30, 120);
+        rect(panelX, panelY, panelWidth, headerHeight, 10, 10, 0, 0);
+
+        // Título "RESULTADOS"
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textSize(24);
+        text("RESULTADOS", panelX + panelWidth/2, panelY + headerHeight/2);
+
+        // Ordena os eventos por tempo de chegada
         List<RaceFinishEvent> sortedEvents = new ArrayList<>(finishEvents);
         sortedEvents.sort(Comparator.comparing(RaceFinishEvent::finishTime));
 
+        // Variáveis para posicionamento das informações
+        int startY = panelY + headerHeight + 15;
+        int posX = panelX + 30;
+        int nameX = panelX + 70;
+        int timeX = panelX + panelWidth - 80;
+
+        // Linha divisória abaixo dos cabeçalhos
+        stroke(200);
+        strokeWeight(1);
+        line(panelX + 20, startY, panelX + panelWidth - 20, startY);
+        noStroke();
+
+        // Desenha cada linha de resultado
         for (int i = 0; i < sortedEvents.size(); i++) {
             RaceFinishEvent event = sortedEvents.get(i);
             Car car = event.car();
+
+            // Posição Y para esta linha
+            int yPos = startY + (i * rowHeight) + rowHeight/2;
+
+            // Destaca a linha do 1º colocado
+            if (i == 0) {
+                fill(255, 250, 200, 100);
+                rect(panelX + 10, yPos - rowHeight/2, panelWidth - 20, rowHeight, 5);
+            }
+            // Desenha linha com tom alternado para facilitar leitura
+            else if (i % 2 == 1) {
+                fill(240, 240, 240, 100);
+                rect(panelX + 10, yPos - rowHeight/2, panelWidth - 20, rowHeight);
+            }
+
+            // Posição
+            fill(i == 0 ? color(180, 150, 0) : (i == 1 ? color(120) : (i == 2 ? color(150, 90, 30) : color(50))));
+            textAlign(CENTER, CENTER);
+            textSize(16);
+            text((i+1) + "º", posX, yPos);
+
+            // Nome do carro
             fill(0);
-            textSize(12);
-            text((i+1) + "º - " + car.getClass().getSimpleName() +
-                    " [" + car.threadId() + "]", WIDTH - 280, 120 + i * 20);
+            textAlign(LEFT, CENTER);
+            textSize(14);
+            text(car.getClass().getSimpleName() + " [" + car.threadId() + "]", nameX, yPos);
+
+            // Tempo de chegada
+            textAlign(RIGHT, CENTER);
+            text(FormatEpochSecondToString.formatEpochSecond(event.getFinishTime()).substring(11), timeX, yPos);
         }
     }
 
@@ -402,6 +462,9 @@ public class ThreadRacing extends PApplet {
         private double speed;
         private boolean finished = false;
         private String activePower = null;
+        private double targetPosition = 0;
+        private double displayPosition = 0;
+        private float lerpFactor = 0.1f;
 
         public CarVisual(String name, long threadId, PImage image, int laneIndex, double speed) {
             this.name = name;
@@ -413,6 +476,7 @@ public class ThreadRacing extends PApplet {
 
         public void setPosition(double position) {
             this.position = position;
+            this.targetPosition = position;
         }
 
         public void setSpeed(double speed) {
@@ -425,6 +489,21 @@ public class ThreadRacing extends PApplet {
 
         public void setActivePower(String powerName) {
             this.activePower = powerName;
+        }
+
+        public void updateDisplayPosition() {
+            // Interpola linearmente entre a posição atual e a posição alvo
+            this.displayPosition = lerp(this.displayPosition, this.targetPosition, this.lerpFactor);
+        }
+
+        private double lerp(double start, double end, float t) {
+            return start + t * (end - start);
+        }
+    }
+
+    private void updateCarPositions() {
+        for (CarVisual carVisual : carVisuals.values()) {
+            carVisual.updateDisplayPosition();
         }
     }
 }
