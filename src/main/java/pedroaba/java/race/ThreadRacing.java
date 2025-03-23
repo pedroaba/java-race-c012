@@ -29,6 +29,9 @@ public class ThreadRacing extends PApplet {
     private boolean raceFinished = false;
     private List<RaceFinishEvent> finishEvents = Collections.synchronizedList(new ArrayList<>());
     private AtomicInteger laneCounter = new AtomicInteger(0);
+    private boolean countdownStarted = false;
+    private int countdownValue = 3;
+    private long lastCountdownTime = 0;
 
     // Imagens dos carros
     private PImage beetleImg;
@@ -52,7 +55,7 @@ public class ThreadRacing extends PApplet {
         smooth();
 
         // Carregando fontes
-        font = createFont("Monospace", 14, true);
+        font = createFont("Monospace", 14, true); // TODO: Escolher uma fonte binita
         textFont(font);
 
         // Carregando imagens
@@ -125,11 +128,12 @@ public class ThreadRacing extends PApplet {
         // Cria listeners para eventos da corrida
         setupListeners();
 
-        // Corrida com 5 carros e comprimento de pista de 100
+        // Corrida com 5 carros e comprimento de pista 100
         race = new Race(5, dispatcher, 100);
 
-        // Inicia a corrida em uma thread separada para não bloquear o Processing
-        new Thread(() -> race.race()).start();
+        // Inicia o countdown
+        countdownStarted = true;
+        lastCountdownTime = System.currentTimeMillis();
     }
 
     private void setupListeners() {
@@ -241,6 +245,38 @@ public class ThreadRacing extends PApplet {
         // Desenha pista
         drawTrack();
 
+        // Countdown
+        if (countdownStarted) {
+            long currentTime = System.currentTimeMillis();
+
+            // Atualiza a cada segundo
+            if (currentTime - lastCountdownTime >= 1000) {
+                countdownValue--;
+                lastCountdownTime = currentTime;
+
+                // Inicia a corrida quando chegar em 0
+                if (countdownValue < 0) {
+                    countdownStarted = false;
+
+                    // Inicia a corrida em uma thread separada para não bloquear o Processing :v
+                    new Thread(() -> race.race()).start();
+                }
+            }
+
+            // Desenha o countdown no centro da tela
+            if (countdownValue >= 0) {
+                fill(255, 0, 0);
+                textSize(120);
+                textAlign(CENTER, CENTER);
+
+                if (countdownValue == 0) {
+                    text("GO!", WIDTH / 2, HEIGHT / 2);
+                } else {
+                    text(countdownValue, WIDTH / 2, HEIGHT / 2);
+                }
+            }
+        }
+
         // Desenha carros
         drawCars();
 
@@ -255,7 +291,7 @@ public class ThreadRacing extends PApplet {
 
     private void drawTrack() {
         // Desenha fundo da pista
-        fill(120);
+        fill(100);
         rect(50, TRACK_Y_START - 20, WIDTH - 100, LANE_HEIGHT * carVisuals.size() + 40);
 
         // Linha de largada
@@ -289,7 +325,6 @@ public class ThreadRacing extends PApplet {
     }
 
     private void drawCars() {
-        // Itera sobre cada carro e desenha
         for (CarVisual carVisual : carVisuals.values()) {
             // Calcula posição X baseada na posição da corrida (0 a 100)
             float trackLength = FINISH_LINE_X - 60;
@@ -309,10 +344,8 @@ public class ThreadRacing extends PApplet {
             textAlign(LEFT, CENTER);
             textSize(14);
             fill(0);
-            text(carVisual.name + " [" + carVisual.threadId + "]",
-                    xPos + 40, yPos - 15);
-            text("Vel: " + nf((float)carVisual.speed, 1, 2),
-                    xPos + 40, yPos + 5);
+            text(carVisual.name + " [" + carVisual.threadId + "]", xPos + 40, yPos - 15);
+            text("Vel: " + nf((float)carVisual.speed, 1, 2), xPos + 40, yPos + 5);
 
             // Se o carro terminou, desenha um marcador
             if (carVisual.finished) {

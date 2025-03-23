@@ -5,7 +5,7 @@ import pedroaba.java.race.utils.Sleeper;
 
 public class RedShell extends Power {
     private final double speedDecrease;
-    private final long duration; // in milliseconds
+    private final long duration; // (ms)
 
     public RedShell(Car target, double speedDecrease, long duration) {
         super(target);
@@ -15,9 +15,12 @@ public class RedShell extends Power {
 
     @Override
     public void activate() {
-        target.increaseSpeed(-speedDecrease);
+        // Calcula a diminuição real p/ ficar a cima de 1.5
+        double actualDecrease = Math.min(speedDecrease, target.getSpeed() - 1.5);
+
+        target.increaseSpeed(-actualDecrease);
         Sleeper.sleep(duration);
 
-        target.increaseSpeed(speedDecrease);
+        target.increaseSpeed(actualDecrease);
     }
 }

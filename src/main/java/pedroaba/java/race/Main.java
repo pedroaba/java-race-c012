@@ -34,9 +34,9 @@ public class Main {
             raceFinishEvents.add(raceFinishEvent);
 
             System.out.println(
-              "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
-                      + " - " + raceFinishEvent.getCar().threadId()
-                      + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
+                "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
+                + " - " + raceFinishEvent.getCar().threadId()
+                + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
             );
         });
 
@@ -67,8 +67,5 @@ public class Main {
         dispatcher.addListener(raceFinishEventListener);
         dispatcher.addListener(allCarFinishEventListener);
         dispatcher.addListener(startRaceListener);
-
-        Race race = new Race(5, dispatcher, 100);
-        race.race();
     }
 }

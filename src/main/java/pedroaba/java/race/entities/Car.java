@@ -109,8 +109,8 @@ public abstract class Car extends Thread {
 
     public void increaseSpeed(double value) {
         double newSpeed = this.speed + value;
-        if (newSpeed < 0) {
-            this.speed = 0;
+        if (newSpeed < 1.5) {
+            this.speed = 1.5;
             return;
         }
 
