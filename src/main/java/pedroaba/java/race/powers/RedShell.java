@@ -1,12 +1,13 @@
 package pedroaba.java.race.powers;
 
 import pedroaba.java.race.entities.Car;
+import pedroaba.java.race.utils.Sleeper;
 
 public class RedShell extends Power {
-    private int speedDecrease;
-    private long duration; // in milliseconds
+    private final double speedDecrease;
+    private final long duration; // in milliseconds
 
-    public RedShell(Car target, int speedDecrease, long duration) {
+    public RedShell(Car target, double speedDecrease, long duration) {
         super(target);
         this.speedDecrease = speedDecrease;
         this.duration = duration;
@@ -15,11 +16,8 @@ public class RedShell extends Power {
     @Override
     public void activate() {
         target.increaseSpeed(-speedDecrease);
-        try {
-            Thread.sleep(duration);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        target.increaseSpeed(speedDecrease); // Reset speed after effect
+        Sleeper.sleep(duration);
+
+        target.increaseSpeed(speedDecrease);
     }
 }
