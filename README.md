@@ -3,7 +3,7 @@
 ## Membros do Projeto
 
 - **Felipe Silveira Barbosa** - Engenharia de Software
-- **Marco Renzo Rodrigues Di Touro** - Engenharia de Software
+- **Marco Renzo Rodrigues Di Toro** - Engenharia de Software
 - **Pedro Augusto Barbosa Aparecido** - Engenharia de Software
 
 ## Descrição do Projeto

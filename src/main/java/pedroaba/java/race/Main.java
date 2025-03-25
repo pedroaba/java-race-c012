@@ -4,6 +4,7 @@ import pedroaba.java.race.entities.Race;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
 import pedroaba.java.race.utils.FormatEpochSecondToString;
+import processing.core.PApplet;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -12,6 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Main {
     public static void main(String[] args) {
+        PApplet.main("pedroaba.java.race.ui.ThreadRacing");
+
         List<RaceFinishEvent> raceFinishEvents = new ArrayList<>();
         Dispatcher<Object> dispatcher = new Dispatcher<>("RaceDispatcher");
 
@@ -31,9 +34,9 @@ public class Main {
             raceFinishEvents.add(raceFinishEvent);
 
             System.out.println(
-              "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
-                      + " - " + raceFinishEvent.getCar().threadId()
-                      + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
+                "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
+                + " - " + raceFinishEvent.getCar().threadId()
+                + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
             );
         });
 
@@ -64,8 +67,5 @@ public class Main {
         dispatcher.addListener(raceFinishEventListener);
         dispatcher.addListener(allCarFinishEventListener);
         dispatcher.addListener(startRaceListener);
-
-        Race race = new Race(5, dispatcher, 100);
-        race.race();
     }
 }
