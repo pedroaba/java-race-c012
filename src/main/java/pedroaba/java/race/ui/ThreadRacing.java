@@ -8,6 +8,7 @@ import pedroaba.java.race.entities.Race;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
 import pedroaba.java.race.utils.FormatEpochSecondToString;
+import pedroaba.java.race.ui.CarVisual;
 import processing.core.PApplet;
 import processing.core.PFont;
 import processing.core.PImage;
@@ -28,6 +29,7 @@ public class ThreadRacing extends PApplet {
     private boolean countdownStarted = false;
     private int countdownValue = 3;
     private long lastCountdownTime = 0;
+    private boolean showSemaphore = true;
 
     // Imagens
     private PImage ferrariImg;
@@ -37,7 +39,8 @@ public class ThreadRacing extends PApplet {
     private PImage boostImg;
     private PImage shellImg;
 
-    private PFont font;
+    private PFont titleFont;
+    private PFont defaultFont;
 
 
     @Override
@@ -52,22 +55,25 @@ public class ThreadRacing extends PApplet {
         smooth();
 
         // Carregando fontes
-        font = createFont("monospace", 14, true); // TODO: Colocar uma fonte binita
-        textFont(font);
+        titleFont = createFont("src/fonts/Sakana.ttf", 14, true);
+        defaultFont = createFont("src/fonts/Sakana.ttf", 14, true); // TODO
+        textFont(defaultFont);
 
         ferrariImg = loadImage("src/images/Carro_1.png");  // Ferrari
         beetleImg = loadImage("src/images/Carro_2.png");   // Beetle
         lamboImg = loadImage("src/images/Carro_3.png");    // Lamborghini
 
+        bananaImg = loadImage("src/images/BananaV2.png");
+        boostImg = loadImage("src/images/Boost.png");
+        shellImg = loadImage("src/images/Shell.png");
+
         // Redimensionando imagens
         if (ferrariImg != null) ferrariImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
         if (beetleImg != null) beetleImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
         if (lamboImg != null) lamboImg.resize(Config.CAR_WIDTH, Config.CAR_HEIGHT);
-
-        // Icones de poderes
-        bananaImg = createPowerImage(color(255, 255, 0)); // Banana
-        boostImg = createPowerImage(color(0, 0, 255));    // Boost
-        shellImg = createPowerImage(color(255, 0, 0));    // Shell
+        if (bananaImg != null) bananaImg.resize(30, 30);
+        if (boostImg != null) boostImg.resize(30, 30);
+        if (shellImg != null) shellImg.resize(30, 30);
 
         setupRace();
     }
@@ -78,10 +84,12 @@ public class ThreadRacing extends PApplet {
         updateCarPositions();
 
         // Titulo
+        textFont(titleFont);
         fill(0);
-        textSize(32);
+        textSize(64);
         textAlign(CENTER, CENTER);
-        text("Thread Racing", Config.WIDTH / 2, 40);
+        text("Thread Racing", Config.WIDTH / 2, 60);
+        textFont(defaultFont);
 
         // Countdown
         if (countdownStarted) {
@@ -92,26 +100,18 @@ public class ThreadRacing extends PApplet {
                 countdownValue--;
                 lastCountdownTime = currentTime;
 
-                // Inicia a corrida quando chegar em 0
-                if (countdownValue < 0) {
+                // Inicia a corrida
+                if (countdownValue < 1) {
                     countdownStarted = false;
+                    showSemaphore = false;
 
                     // Inicia a corrida em uma thread separada para não bloquear o Processing :v
                     new Thread(() -> race.race()).start();
                 }
             }
 
-            // Desenha o countdown no centro da tela
-            if (countdownValue >= 0) {
-                fill(255, 0, 0);
-                textSize(120);
-                textAlign(CENTER, CENTER);
-
-                if (countdownValue == 0) {
-                    text("GO!", Config.WIDTH / 2, Config.HEIGHT / 2);
-                } else {
-                    text(countdownValue, Config.WIDTH / 2, Config.HEIGHT / 2);
-                }
+            if (showSemaphore) {
+                drawSemaphore(countdownValue);
             }
         } else {
             drawTrack();
@@ -129,31 +129,13 @@ public class ThreadRacing extends PApplet {
         drawMessages();
     }
 
-    private PImage createPowerImage(int powerColor) {
-        PImage img = createImage(20, 20, RGB);
-        img.loadPixels();
-        for (int i = 0; i < img.pixels.length; i++) {
-            int x = i % 20;
-            int y = i / 20;
-
-            float dist = dist(x, y, 10, 10);
-            if (dist < 8) {
-                img.pixels[i] = powerColor;
-            } else {
-                img.pixels[i] = color(0, 0, 0, 0); // Transparente
-            }
-        }
-        img.updatePixels();
-        return img;
-    }
-
     private void setupRace() {
         dispatcher = new Dispatcher<>("RaceDispatcher");
 
         // Cria listeners para eventos da corrida
         setupListeners();
 
-        // Corrida com 5 carros e comprimento de pista 100
+        // Corrida com X carros e comprimento de pista Y
         race = new Race(5, dispatcher, 100);
 
         // Inicia o countdown
@@ -315,10 +297,10 @@ public class ThreadRacing extends PApplet {
 
             // Nome e Velocidade ao lado do carro
             textAlign(LEFT, CENTER);
-            textSize(14);
+            textSize(15);
             fill(0);
-            text(carVisual.name + " [" + carVisual.threadId + "]", xPos + 50, yPos - 15);
-            text("Vel: " + nf((float)carVisual.speed, 1, 2), xPos + 50, yPos + 5);
+            text(carVisual.name + " [" + carVisual.threadId + "]", xPos + 50, yPos - 10);
+            text("Vel: " + nf((float)carVisual.speed, 1, 2), xPos + 50, yPos + 8);
 
             // Marcador qunado terminar
             if (carVisual.finished) {
@@ -335,15 +317,12 @@ public class ThreadRacing extends PApplet {
 
                 if (carVisual.activePower.equals("Banana")) {
                     powerImg = bananaImg;
-                    fill(255, 255, 0);
                     text("Banana!", xPos, yPos - 25);
                 } else if (carVisual.activePower.equals("Boost")) {
                     powerImg = boostImg;
-                    fill(0, 0, 255);
                     text("Boost!", xPos, yPos - 25);
                 } else if (carVisual.activePower.equals("RedShell")) {
                     powerImg = shellImg;
-                    fill(255, 0, 0);
                     text("Red Shell!", xPos, yPos - 25);
                 } else {
                     continue; // Poder desconhecido, não mostrar
@@ -456,47 +435,54 @@ public class ThreadRacing extends PApplet {
         }
     }
 
-    private class CarVisual {
-        private String name;
-        private long threadId;
-        private PImage image;
-        private int laneIndex;
-        private double position = 0;
-        private double speed;
-        private boolean finished = false;
-        private String activePower = null;
-        private double targetPosition = 0;
-        private double displayPosition = 0;
-        private float lerpFactor = 0.1f;
 
-        public CarVisual(String name, long threadId, PImage image, int laneIndex, double speed) {
-            this.name = name;
-            this.threadId = threadId;
-            this.image = image;
-            this.laneIndex = laneIndex;
-            this.speed = speed;
-        }
 
-        public void setPosition(double position) {
-            this.position = position;
-            this.targetPosition = position;
-        }
+    private void drawSemaphore(int countdownValue) {
+        fill(50);
+        stroke(20);
+        strokeWeight(2);
+        rect(Config.WIDTH / 2 - 40, Config.HEIGHT / 2 - 120, 80, 240, 10);
 
-        public void setSpeed(double speed) {
-            this.speed = speed;
-        }
+        int lightRadius = 25;
+        int lightSpacing = 70;
+        int centerX = Config.WIDTH / 2;
+        int startY = Config.HEIGHT / 2 - 80;
 
-        public void setFinished(boolean finished) {
-            this.finished = finished;
+        if (countdownValue >= 3) {
+            fill(255, 0, 0);
+        } else {
+            fill(100, 0, 0);
         }
+        circle(centerX, startY, lightRadius * 2);
 
-        public void setActivePower(String powerName) {
-            this.activePower = powerName;
+        if (countdownValue == 2) {
+            fill(255, 255, 0);
+        } else {
+            fill(100, 100, 0);
         }
+        circle(centerX, startY + lightSpacing, lightRadius * 2);
 
-        public void updateDisplayPosition() {
-            this.displayPosition = lerp((float) this.displayPosition, (float) this.targetPosition, this.lerpFactor);
+        if (countdownValue <= 1) {
+            fill(0, 255, 0);
+        } else {
+            fill(0, 100, 0);
         }
+        circle(centerX, startY + lightSpacing * 2, lightRadius * 2);
+
+        noFill();
+        strokeWeight(4);
+        if (countdownValue >= 3) {
+            stroke(255, 100, 100, 150);
+            circle(centerX, startY, lightRadius * 2 + 10);
+        } else if (countdownValue == 2) {
+            stroke(255, 255, 100, 150);
+            circle(centerX, startY + lightSpacing, lightRadius * 2 + 10);
+        } else if (countdownValue <= 1) {
+            stroke(100, 255, 100, 150);
+            circle(centerX, startY + lightSpacing * 2, lightRadius * 2 + 10);
+        }
+        stroke(0);
+        strokeWeight(1);
     }
 
 }

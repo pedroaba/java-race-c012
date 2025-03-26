@@ -1,13 +1,12 @@
 package pedroaba.java.race.utils;
 
-import java.time.LocalDateTime;
-
 public class Sleeper {
     public static void sleep(Long milliseconds) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime target = LocalDateTime.now().plusSeconds(milliseconds / 1000);
-        while (now.isBefore(target)) {
-            now = LocalDateTime.now();
+        try {
+            // Mudei para Thread.sleep() porque o outro modo ficava usando cpu enquanto dava sleep :v
+            Thread.sleep(milliseconds);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 }
