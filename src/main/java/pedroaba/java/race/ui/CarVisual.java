@@ -5,16 +5,15 @@ import processing.core.PImage;
 
 public class CarVisual extends PApplet {
     public String name;
-    public long threadId;
+    public Long threadId;
     public PImage image;
-    public int laneIndex;
-    public double position = 0;
-    public double speed;
-    public boolean finished = false;
+    public Integer laneIndex;
+    public Double position = 0.0;
+    public Double speed;
+    public Boolean finished = false;
     public String activePower = null;
-    private double targetPosition = 0;
-    public double displayPosition = 0;
-    private float lerpFactor = 0.1f;
+    private Double targetPosition = 0.0;
+    public Double displayPosition = 0.0;
 
     public CarVisual(String name, long threadId, PImage image, int laneIndex, double speed) {
         this.name = name;
@@ -42,6 +41,8 @@ public class CarVisual extends PApplet {
     }
 
     public void updateDisplayPosition() {
-        this.displayPosition = lerp((float) this.displayPosition, (float) this.targetPosition, this.lerpFactor);
+        float lerpFactor = 0.1f;
+
+        this.displayPosition = (double) lerp(this.displayPosition.floatValue(), this.targetPosition.floatValue(), lerpFactor);
     }
 }

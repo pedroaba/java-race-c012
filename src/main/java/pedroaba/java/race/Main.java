@@ -1,6 +1,6 @@
 package pedroaba.java.race;
 
-import pedroaba.java.race.entities.Race;
+import org.jetbrains.annotations.NotNull;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
 import pedroaba.java.race.utils.FormatEpochSecondToString;
@@ -28,18 +28,16 @@ public class Main {
         Listener<Object> listener = new Listener<>(GameEventName.RUNNING);
         listener.on(System.out::println);
 
-        Listener<Object> raceFinishEventListener = new Listener<>(GameEventName.FINISHED);
-        raceFinishEventListener.on((event) -> {
-            RaceFinishEvent raceFinishEvent = (RaceFinishEvent) event;
-            raceFinishEvents.add(raceFinishEvent);
+        Listener<Object> raceFinishEventListener = getEventListener(raceFinishEvents);
+        Listener<Object> allCarFinishEventListener = getAllCarFinishEventListener(raceFinishEvents);
 
-            System.out.println(
-                "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
-                + " - " + raceFinishEvent.getCar().threadId()
-                + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
-            );
-        });
+        dispatcher.addListener(listener);
+        dispatcher.addListener(raceFinishEventListener);
+        dispatcher.addListener(allCarFinishEventListener);
+        dispatcher.addListener(startRaceListener);
+    }
 
+    private static @NotNull Listener<Object> getAllCarFinishEventListener(List<RaceFinishEvent> raceFinishEvents) {
         Listener<Object> allCarFinishEventListener = new Listener<>(GameEventName.RACE_FINISHED);
         allCarFinishEventListener.on((event) -> {
             AllCarFinishEvent allCarFinishEvent = (AllCarFinishEvent) event;
@@ -63,9 +61,22 @@ public class Main {
             });
         });
 
-        dispatcher.addListener(listener);
-        dispatcher.addListener(raceFinishEventListener);
-        dispatcher.addListener(allCarFinishEventListener);
-        dispatcher.addListener(startRaceListener);
+        return allCarFinishEventListener;
+    }
+
+    private static @NotNull Listener<Object> getEventListener(List<RaceFinishEvent> raceFinishEvents) {
+        Listener<Object> raceFinishEventListener = new Listener<>(GameEventName.FINISHED);
+        raceFinishEventListener.on((event) -> {
+            RaceFinishEvent raceFinishEvent = (RaceFinishEvent) event;
+            raceFinishEvents.add(raceFinishEvent);
+
+            System.out.println(
+                "Car: " + raceFinishEvent.getCar().getClass().getSimpleName()
+                + " - " + raceFinishEvent.getCar().threadId()
+                + " | Finished: " + FormatEpochSecondToString.formatEpochSecond(raceFinishEvent.getFinishTime())
+            );
+        });
+
+        return raceFinishEventListener;
     }
 }

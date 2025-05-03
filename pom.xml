@@ -20,6 +20,12 @@
             <version>RELEASE</version>
             <scope>compile</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.processing/core -->
+        <dependency>
+            <groupId>org.processing</groupId>
+            <artifactId>core</artifactId>
+            <version>4.4.1</version>
+        </dependency>
     </dependencies>
 
 </project>
