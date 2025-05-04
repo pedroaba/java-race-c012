@@ -49,6 +49,7 @@ public class PitStop<T> extends Thread {
 
     private void onRaceFinished() {
         this.isRaceFinished = true;
+        System.out.println("Race finished");
     }
 
     private void onCarEnterOnPitStop(T params) {
@@ -75,10 +76,14 @@ public class PitStop<T> extends Thread {
                     break;
                 }
 
-                dispatcher.emmit(GameEventName.STOP_IN_PIT_STOP, null);
+                if (this.pitStopCarList.getCars().isEmpty()) {
+                    dispatcher.emmit(GameEventName.STOP_IN_PIT_STOP, null);
+                }
+
                 Sleeper.sleep(Integer.toUnsignedLong(intervalOfPitStop * 1000));
             }
 
+            System.out.println("Closing pit stop...");
             this.interrupt();
         } catch (Exception e) {
             e.fillInStackTrace();

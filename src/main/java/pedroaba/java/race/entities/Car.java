@@ -1,16 +1,22 @@
 package pedroaba.java.race.entities;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import pedroaba.java.race.constants.Config;
+import pedroaba.java.race.constants.FeatureFlags;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
 import pedroaba.java.race.powers.Power;
+import pedroaba.java.race.scheduler.PitStopScheduler;
+import pedroaba.java.race.utils.ConverterUnit;
+import pedroaba.java.race.utils.MechanicTasksGenerator;
 import pedroaba.java.race.utils.Sleeper;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Random;
+import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 
 public abstract class Car extends Thread {
@@ -22,24 +28,49 @@ public abstract class Car extends Thread {
     private Boolean finishRace = false;
 
     private Boolean isInPitStop = false;
+    private Boolean hasCollision = false;
 
-    public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower) {
+    private final Integer pitStopTaskDuration;
+
+    private final Semaphore semaphore = new Semaphore(0);
+    private final PitStopScheduler pitStopScheduler;
+
+    public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower, PitStopScheduler pitStopScheduler) {
         if (speed <= 0) {
             throw new IllegalArgumentException("Speed must be greater than 0");
         }
 
+        this.pitStopScheduler = pitStopScheduler;
         this.dispatchToApplyPower = dispatchToApplyPower;
         this.trackLength = trackLength;
         this.speed = speed;
         this.dispatcher = dispatcher;
 
+        this.pitStopTaskDuration = this.getPitStopTaskDuration();
+
         Listener<Object> pitStopListener = new Listener<>(GameEventName.STOP_IN_PIT_STOP);
         pitStopListener.on((_) -> this.onMustStopOnPitStop());
 
+        Listener<Object> collisionListener = new Listener<>(GameEventName.COLLISION_IN_PIT_STOP);
+        collisionListener.on((_) -> this.onCollisionPitStop());
+
         this.dispatcher.addListener(pitStopListener);
+        this.dispatcher.addListener(collisionListener);
+    }
+
+    private void onCollisionPitStop() {
+        if (this.isFinishedRace()) {
+            return;
+        }
+
+        this.hasCollision = true;
     }
 
     private void onMustStopOnPitStop() {
+        if (this.isFinishedRace()) {
+            return;
+        }
+
         this.isInPitStop = true;
         System.out.printf("%s enter on pit stop%n", this);
     }
@@ -70,14 +101,36 @@ public abstract class Car extends Thread {
         LocalDateTime endPowerAttackControlTime = LocalDateTime.now();
 
         while (position < trackLength) {
+            if (this.hasCollision) {
+                break;
+            }
+
             if (Thread.currentThread().isInterrupted()) {
                 break;
             }
 
             if (isInPitStop) {
+                if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+                    this.pitStopScheduler.register(this);
+                    this.semaphore.acquireUninterruptibly();
+                }
+
+                String task = MechanicTasksGenerator.getTaskOnPitStop();
                 this.dispatcher.emmit(GameEventName.ENTER_IN_PIT_STOP, new CarEnterInPitStop(this));
-                Sleeper.sleep(Integer.toUnsignedLong(3000));
+                System.out.printf("%s - Initializing: %s%n", this, task);
+                Sleeper.sleep(
+                    Integer.toUnsignedLong(
+                        ConverterUnit.toMillis(this.pitStopTaskDuration)
+                    )
+                );
+                System.out.printf("%s - Finishing: %s%n", this, task);
                 this.dispatcher.emmit(GameEventName.EXIT_IN_PIT_STOP, new CarExitInPitStop(this));
+
+                if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+                    this.pitStopScheduler.notifyExit();
+                }
+
+                this.isInPitStop = false;
             }
 
             if (ChronoUnit.MILLIS.between(startMovementControlTime, endMovementControlTime) >= Config.TIME_BETWEEN_EACH_MOVEMENT) {
@@ -114,8 +167,8 @@ public abstract class Car extends Thread {
         long epochSeconds = now.atZone(zoneId).toEpochSecond();
 
         RaceFinishEvent raceFinishEvent = new RaceFinishEvent(this, epochSeconds);
-        getDispatcher().emmit(GameEventName.FINISHED, raceFinishEvent);
-        finishRace = true;
+        this.dispatcher.emmit(GameEventName.FINISHED, raceFinishEvent);
+        this.finishRace = true;
     }
 
     @Override
@@ -160,5 +213,19 @@ public abstract class Car extends Thread {
 
     public boolean hasPower() {
         return power != null;
+    }
+
+    public void grantPermit() {
+        semaphore.release();
+    }
+
+    private @NotNull Integer getPitStopTaskDuration() {
+        Random random = new Random();
+
+        random.setSeed(System.currentTimeMillis());
+        return random.nextInt(
+            Config.PIT_STOP_DURATION_INTERVAL_RANGE.getFirst(),
+            Config.PIT_STOP_DURATION_INTERVAL_RANGE.getSecond()
+        );
     }
 }

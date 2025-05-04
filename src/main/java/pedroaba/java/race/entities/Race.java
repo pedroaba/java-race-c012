@@ -3,10 +3,13 @@ package pedroaba.java.race.entities;
 import pedroaba.java.race.Beetle;
 import pedroaba.java.race.Ferrari;
 import pedroaba.java.race.Lamborghini;
+import pedroaba.java.race.constants.FeatureFlags;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.AllCarFinishEvent;
 import pedroaba.java.race.events.Dispatcher;
 import pedroaba.java.race.events.RaceStartedEvent;
+import pedroaba.java.race.scheduler.FcfsScheduling;
+import pedroaba.java.race.scheduler.PitStopScheduler;
 import pedroaba.java.race.utils.ApplyPowerTo;
 
 import java.time.LocalDateTime;
@@ -14,25 +17,54 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CyclicBarrier;
 
 public class Race {
     private final List<Car> cars = new ArrayList<>();
     private final Dispatcher<Object> dispatcher;
+    private PitStopScheduler pitStopScheduler = null;
+    private FcfsScheduling<Car> fcfsScheduling = null;
 
     public Race(int quantityOfCars, Dispatcher<Object> dispatcher, int trackLength) {
         this.dispatcher = dispatcher;
+
+        if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+            this.fcfsScheduling = new FcfsScheduling<>();
+            this.pitStopScheduler = new PitStopScheduler(this.fcfsScheduling);
+        }
 
         for (int i = 0; i < quantityOfCars; i++) {
             int choice = new Random().nextInt(3);
             switch (choice) {
                 case 0:
-                    cars.add(new Beetle(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
+                    cars.add(
+                        new Beetle(
+                            dispatcher,
+                            trackLength,
+                            (event) -> this.applyPower((Car) event),
+                            this.pitStopScheduler
+                        )
+                    );
                     break;
                 case 1:
-                    cars.add(new Ferrari(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
+                    cars.add(
+                        new Ferrari(
+                            dispatcher,
+                            trackLength,
+                            (event) -> this.applyPower((Car) event),
+                            this.pitStopScheduler
+                        )
+                    );
                     break;
                 case 2:
-                    cars.add(new Lamborghini(dispatcher, trackLength, (event) -> this.applyPower((Car) event)));
+                    cars.add(
+                        new Lamborghini(
+                            dispatcher,
+                            trackLength,
+                            (event) -> this.applyPower((Car) event),
+                            this.pitStopScheduler
+                        )
+                    );
                     break;
             }
         }
@@ -77,17 +109,17 @@ public class Race {
             }
         }
 
-        try {
-            pitStop.join();
-        } catch (InterruptedException e) {
-            e.fillInStackTrace();
-        }
-
         now = LocalDateTime.now();
         zone = ZoneId.systemDefault();
         timestamp = now.atZone(zone).toEpochSecond();
 
         AllCarFinishEvent event = new AllCarFinishEvent(timestamp);
         this.dispatcher.emmit(GameEventName.RACE_FINISHED, event);
+
+        try {
+            pitStop.join();
+        } catch (InterruptedException e) {
+            e.fillInStackTrace();
+        }
     }
 }

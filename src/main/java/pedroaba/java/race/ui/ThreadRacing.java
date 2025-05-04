@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class ThreadRacing extends PApplet {
@@ -106,8 +107,8 @@ public class ThreadRacing extends PApplet {
             drawTrack();
             updateCarPositions();
             drawCars();
-            drawCollisionPanel();
             drawMessages();
+            drawCollisionPanel();
             return;
         }
 
@@ -234,7 +235,16 @@ public class ThreadRacing extends PApplet {
                 e.fillInStackTrace();
             }
 
-            raceMessages.add("Ocorreu uma colisão no pit stop");
+            String collisionMessage = "Ocorreu uma colisão no pit stop %d".formatted(pitStopCollisionEvent.quantityOfCarOnPitStop());
+            String carsOnPitStopMessage = "Carros que estão no pit stop:";
+            raceMessages.add(collisionMessage);
+            raceMessages.add(carsOnPitStopMessage);
+
+            for (Car car : pitStopCollisionEvent.cars()) {
+                String message = "- Carro (%s)".formatted(car);
+                raceMessages.add(message);
+            }
+
             hasCollisionIdentified = true;
             raceFinished = true;
         });

@@ -1,5 +1,6 @@
 package pedroaba.java.race.utils;
 
+import pedroaba.java.race.constants.FeatureFlags;
 import pedroaba.java.race.entities.Car;
 
 import java.beans.PropertyChangeListener;
@@ -7,11 +8,13 @@ import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 
 public class PitStopCarList {
     private final List<Car> cars = new ArrayList<>();
     private final PropertyChangeSupport propertyChangeSupport = new PropertyChangeSupport(this);
+
+    private final Semaphore semaphore = new Semaphore(1, true);
 
     private final String propertyName = "size";
 
@@ -23,25 +26,49 @@ public class PitStopCarList {
         propertyChangeSupport.removePropertyChangeListener(this.propertyName, listener);
     }
 
-    public synchronized void addCar(Car car) {
-        Integer sizeOfListBefore = cars.size();
-        cars.add(car);
+    public void addCar(Car car) {
+        try {
+            if (FeatureFlags.applySemaphoreLogic) {
+                semaphore.acquire();
+            }
 
-        this.dispatch(sizeOfListBefore, cars.size());
+            Integer sizeOfListBefore = cars.size();
+            cars.add(car);
+
+            this.dispatch(sizeOfListBefore, cars.size());
+        } catch (Exception e) {
+            e.fillInStackTrace();
+        } finally {
+            if (FeatureFlags.applySemaphoreLogic) {
+                semaphore.release();
+            }
+        }
     }
 
-    public synchronized void removeCar(Car car) {
-        Integer sizeOfListBefore = cars.size();
-        cars.remove(car);
+    public void removeCar(Car car) {
+        try {
+            if (FeatureFlags.applySemaphoreLogic) {
+                semaphore.acquire();
+            }
 
-        this.dispatch(sizeOfListBefore, cars.size());
+            Integer sizeOfListBefore = cars.size();
+            cars.remove(car);
+
+            this.dispatch(sizeOfListBefore, cars.size());
+        } catch (Exception e) {
+            e.fillInStackTrace();
+        } finally {
+            if (FeatureFlags.applySemaphoreLogic) {
+                semaphore.release();
+            }
+        }
     }
 
-    public synchronized List<Car> getCars() {
+    public List<Car> getCars() {
         return new ArrayList<>(cars);
     }
 
-    private synchronized void dispatch(Integer oldSize, Integer newSize) {
+    private void dispatch(Integer oldSize, Integer newSize) {
         propertyChangeSupport.firePropertyChange(this.propertyName, Optional.of(oldSize), newSize);
     }
 }
