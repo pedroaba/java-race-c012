@@ -1,5 +1,6 @@
 package pedroaba.java.race.entities;
 
+import org.jetbrains.annotations.Nullable;
 import pedroaba.java.race.Beetle;
 import pedroaba.java.race.Ferrari;
 import pedroaba.java.race.Lamborghini;
@@ -10,6 +11,8 @@ import pedroaba.java.race.events.Dispatcher;
 import pedroaba.java.race.events.RaceStartedEvent;
 import pedroaba.java.race.scheduler.FcfsScheduling;
 import pedroaba.java.race.scheduler.PitStopScheduler;
+import pedroaba.java.race.scheduler.SchedulingAlgorithm;
+import pedroaba.java.race.scheduler.SjfScheduling;
 import pedroaba.java.race.utils.ApplyPowerTo;
 
 import java.time.LocalDateTime;
@@ -22,16 +25,11 @@ import java.util.concurrent.CyclicBarrier;
 public class Race {
     private final List<Car> cars = new ArrayList<>();
     private final Dispatcher<Object> dispatcher;
-    private PitStopScheduler pitStopScheduler = null;
-    private FcfsScheduling<Car> fcfsScheduling = null;
 
     public Race(int quantityOfCars, Dispatcher<Object> dispatcher, int trackLength) {
         this.dispatcher = dispatcher;
 
-        if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
-            this.fcfsScheduling = new FcfsScheduling<>();
-            this.pitStopScheduler = new PitStopScheduler(this.fcfsScheduling);
-        }
+        PitStopScheduler pitStopScheduler = getPitStopScheduler();
 
         for (int i = 0; i < quantityOfCars; i++) {
             int choice = new Random().nextInt(3);
@@ -42,7 +40,7 @@ public class Race {
                             dispatcher,
                             trackLength,
                             (event) -> this.applyPower((Car) event),
-                            this.pitStopScheduler
+                                pitStopScheduler
                         )
                     );
                     break;
@@ -52,7 +50,7 @@ public class Race {
                             dispatcher,
                             trackLength,
                             (event) -> this.applyPower((Car) event),
-                            this.pitStopScheduler
+                                pitStopScheduler
                         )
                     );
                     break;
@@ -62,12 +60,28 @@ public class Race {
                             dispatcher,
                             trackLength,
                             (event) -> this.applyPower((Car) event),
-                            this.pitStopScheduler
+                                pitStopScheduler
                         )
                     );
                     break;
             }
         }
+    }
+
+    private static @Nullable PitStopScheduler getPitStopScheduler() {
+        SchedulingAlgorithm<Car> schedulingAlgorithm = null;
+        if (FeatureFlags.applySJFSchedulingAlgorithm) {
+            schedulingAlgorithm = new SjfScheduling();
+        } else if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+            schedulingAlgorithm = new FcfsScheduling<>();
+        }
+
+        PitStopScheduler pitStopScheduler = null;
+        if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
+            pitStopScheduler = new PitStopScheduler(schedulingAlgorithm);
+        }
+
+        return pitStopScheduler;
     }
 
     private void applyPower(Car carToAddPower) {

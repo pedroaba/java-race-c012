@@ -18,13 +18,11 @@ public class PitStopScheduler {
         new Thread(this::scheduleLoop, "PitStop-Scheduler").start();
     }
 
-    // chamado por cada Car assim que chega no pit-stop
     public synchronized void register(Car car) {
         queue.add(car);
-        notify(); // acorda scheduleLoop se estiver dormindo
+        notify();
     }
 
-    // chamado pelo Car quando sai do pit-stop
     public void notifyExit() {
         exitSemaphore.release();
     }
@@ -41,17 +39,13 @@ public class PitStopScheduler {
                         return;
                     }
                 }
-                // snapshot + escolhe segundo o algoritmo
+
                 next = algorithm.next(new ArrayList<>(queue));
                 queue.remove(next);
             }
 
-            // libera o carro escolhido
-            if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
-                next.grantPermit();
-            }
+            next.grantPermit();
 
-            // aguarda até que ele sinalize saída
             try {
                 exitSemaphore.acquire();
             } catch (InterruptedException e) {

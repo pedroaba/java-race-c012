@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import pedroaba.java.race.Beetle;
 import pedroaba.java.race.Ferrari;
 import pedroaba.java.race.constants.Config;
+import pedroaba.java.race.constants.FeatureFlags;
 import pedroaba.java.race.entities.Car;
 import pedroaba.java.race.entities.PitStop;
 import pedroaba.java.race.entities.Race;
@@ -178,6 +179,12 @@ public class ThreadRacing extends PApplet {
     }
 
     private void initializeApp() {
+        if (FeatureFlags.applyFCFSSchedulingAlgorithm && FeatureFlags.applySJFSchedulingAlgorithm) {
+            System.err.println("Não é permitido habilitar FCFS e SJF ao mesmo tempo. Fechando aplicação.");
+            this.exit();
+            return;
+        }
+
         frameRate(60);
         background(0);
         smooth();
@@ -476,8 +483,8 @@ public class ThreadRacing extends PApplet {
 
         float startY = panelPosition.y() + headerPanelSize.height() + 15f;
         float posX = panelPosition.x() + 30f;
-        float nameX = panelPosition.x() + 70f;
-        float timeX = panelPosition.x() + headerPanelSize.width() - 80f;
+        float nameX = panelPosition.x() + 40f;
+        float timeX = panelPosition.x() + headerPanelSize.width() - 60f;
 
         Position divisionLinePosition = new Position(-1f, startY);
         drawHeaderDivisionLine(divisionLinePosition, panelPosition, headerPanelSize);
@@ -554,11 +561,11 @@ public class ThreadRacing extends PApplet {
         textAlign(LEFT, CENTER);
         textSize(14);
 
-        String carName = "%s [%d]".formatted(car.getName(), carIndex);
+        String carName = "%s [%d]".formatted(car, carIndex);
         text(carName, namePosition.x(), namePosition.y());
 
         textAlign(RIGHT, CENTER);
-        text(FormatEpochSecondToString.formatEpochSecond(finishTime).substring(11), timePosition.x(), timePosition.y());
+        text(FormatEpochSecondToString.formatEpochSecond(finishTime).substring(11), timePosition.x() + 40, timePosition.y());
     }
 
     private void drawPanelHeader(@NotNull Position position,

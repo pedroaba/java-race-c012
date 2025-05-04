@@ -17,23 +17,21 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
 public abstract class Car extends Thread {
     private final Dispatcher<Object> dispatcher;
     private final Integer trackLength;
     private final Consumer<Object> dispatchToApplyPower;
+    private final Semaphore semaphore = new Semaphore(0);
+    private final PitStopScheduler pitStopScheduler;
     private Power power;
     private double speed;
     private Boolean finishRace = false;
-
     private Boolean isInPitStop = false;
     private Boolean hasCollision = false;
-
-    private final Integer pitStopTaskDuration;
-
-    private final Semaphore semaphore = new Semaphore(0);
-    private final PitStopScheduler pitStopScheduler;
+    private Integer pitStopTaskDuration;
 
     public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower, PitStopScheduler pitStopScheduler) {
         if (speed <= 0) {
@@ -45,8 +43,6 @@ public abstract class Car extends Thread {
         this.trackLength = trackLength;
         this.speed = speed;
         this.dispatcher = dispatcher;
-
-        this.pitStopTaskDuration = this.getPitStopTaskDuration();
 
         Listener<Object> pitStopListener = new Listener<>(GameEventName.STOP_IN_PIT_STOP);
         pitStopListener.on((_) -> this.onMustStopOnPitStop());
@@ -71,8 +67,10 @@ public abstract class Car extends Thread {
             return;
         }
 
+        this.pitStopTaskDuration = this.getPitStopTaskDuration();
+
         this.isInPitStop = true;
-        System.out.printf("%s enter on pit stop%n", this);
+        System.out.printf("%s enter on pit stop - task duration '%d'%n", this, this.pitStopTaskDuration);
     }
 
     public double getSpeed() {
@@ -110,23 +108,19 @@ public abstract class Car extends Thread {
             }
 
             if (isInPitStop) {
-                if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+                if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
                     this.pitStopScheduler.register(this);
                     this.semaphore.acquireUninterruptibly();
                 }
 
                 String task = MechanicTasksGenerator.getTaskOnPitStop();
                 this.dispatcher.emmit(GameEventName.ENTER_IN_PIT_STOP, new CarEnterInPitStop(this));
-                System.out.printf("%s - Initializing: %s%n", this, task);
-                Sleeper.sleep(
-                    Integer.toUnsignedLong(
-                        ConverterUnit.toMillis(this.pitStopTaskDuration)
-                    )
-                );
-                System.out.printf("%s - Finishing: %s%n", this, task);
+                System.out.printf("%s - Initializing: %s | Duration: %d %n", this, task, this.pitStopTaskDuration);
+                Sleeper.sleep(Integer.toUnsignedLong(ConverterUnit.toMillis(this.pitStopTaskDuration)));
+                System.out.printf("%s - Finishing: %s | Duration: %d %n", this, task, this.pitStopTaskDuration);
                 this.dispatcher.emmit(GameEventName.EXIT_IN_PIT_STOP, new CarExitInPitStop(this));
 
-                if (FeatureFlags.applyFCFSSchedulingAlgorithm) {
+                if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
                     this.pitStopScheduler.notifyExit();
                 }
 
@@ -173,7 +167,11 @@ public abstract class Car extends Thread {
 
     @Override
     public String toString() {
-        return "[CarThreadId: %d | Car Type: %s]".formatted(this.threadId(), this.getClass().getSimpleName());
+        return "[Id: %d | CarT: %s]".formatted(this.threadId(), this.getClass().getSimpleName());
+    }
+
+    public Integer getTaskDuration() {
+        return pitStopTaskDuration;
     }
 
     public Boolean isFinishedRace() {
@@ -220,12 +218,6 @@ public abstract class Car extends Thread {
     }
 
     private @NotNull Integer getPitStopTaskDuration() {
-        Random random = new Random();
-
-        random.setSeed(System.currentTimeMillis());
-        return random.nextInt(
-            Config.PIT_STOP_DURATION_INTERVAL_RANGE.getFirst(),
-            Config.PIT_STOP_DURATION_INTERVAL_RANGE.getSecond()
-        );
+        return ThreadLocalRandom.current().nextInt(Config.PIT_STOP_DURATION_INTERVAL_RANGE.getFirst(), Config.PIT_STOP_DURATION_INTERVAL_RANGE.getSecond());
     }
 }

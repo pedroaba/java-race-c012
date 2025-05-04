@@ -10,9 +10,6 @@ public class Config {
     public static final Float SPEED_BOOST_AMOUNT = 0.5f;
     public static final Integer TIME_DURATION_OF_RED_SHELL_POWER = 400;
 
-    public static final Integer INTERVAL_OF_PIT_STOP = 5;
-    public static final Integer MAX_OF_CARS_IN_PIT_STOP = 2;
-
     public static final Integer START_RANGE_OF_POWER_RANGE = 1;
     public static final Integer END_RANGE_OF_POWER_RANGE = 3;
 
@@ -26,5 +23,7 @@ public class Config {
     public static final Integer CAR_HEIGHT = 82;
 
     // PIT STOP CONFIG
-    public static final Pair<Integer, Integer> PIT_STOP_DURATION_INTERVAL_RANGE = new Pair<>(2, 3);
+    public static final Integer INTERVAL_OF_PIT_STOP = 7;
+    public static final Integer MAX_OF_CARS_IN_PIT_STOP = 2;
+    public static final Pair<Integer, Integer> PIT_STOP_DURATION_INTERVAL_RANGE = new Pair<>(2, 5);
 }
