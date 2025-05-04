@@ -5,8 +5,11 @@ public class Config {
     public static final Integer TIME_BETWEEN_EACH_POWER_UP = 300;
     public static final Integer TIME_BETWEEN_EACH_ATTACK = 250;
     public static final Integer TIME_DURATION_OF_BANANA_POWER = 600;
-    public static final Float   SPEED_BOOST_AMMOUNT = 0.5f;
+    public static final Float SPEED_BOOST_AMOUNT = 0.5f;
     public static final Integer TIME_DURATION_OF_RED_SHELL_POWER = 400;
+
+    public static final Integer INTERVAL_OF_PIT_STOP = 3;
+    public static final Integer MAX_OF_CARS_IN_PIT_STOP = 2;
 
     public static final Integer START_RANGE_OF_POWER_RANGE = 1;
     public static final Integer END_RANGE_OF_POWER_RANGE = 3;

@@ -62,6 +62,9 @@ public class Race {
         RaceStartedEvent startedEvent = new RaceStartedEvent(timestamp);
         this.dispatcher.emmit(GameEventName.RACE_STARTED, startedEvent);
 
+        PitStop<Object> pitStop = new PitStop<>(this.dispatcher);
+        pitStop.start();
+
         for (Car car : cars) {
             car.start();
         }
@@ -72,6 +75,12 @@ public class Race {
             } catch (InterruptedException e) {
                 e.fillInStackTrace();
             }
+        }
+
+        try {
+            pitStop.join();
+        } catch (InterruptedException e) {
+            e.fillInStackTrace();
         }
 
         now = LocalDateTime.now();

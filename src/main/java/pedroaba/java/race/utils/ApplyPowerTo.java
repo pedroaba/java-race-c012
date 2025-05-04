@@ -34,7 +34,7 @@ public class ApplyPowerTo {
                 break;
             case 1:
                 target.setPower(
-                    new Boost(targetToReceivePower, Config.SPEED_BOOST_AMMOUNT)
+                    new Boost(targetToReceivePower, Config.SPEED_BOOST_AMOUNT)
                 );
                 break;
             case 2:
@@ -50,7 +50,7 @@ public class ApplyPowerTo {
     public static void applyBoost(Car targetToReceivePower) {
         Random random = new Random();
         targetToReceivePower.setPower(
-            new Boost(targetToReceivePower, Config.SPEED_BOOST_AMMOUNT)
+            new Boost(targetToReceivePower, Config.SPEED_BOOST_AMOUNT)
         );
     }
 }

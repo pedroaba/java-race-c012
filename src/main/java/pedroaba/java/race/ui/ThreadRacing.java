@@ -8,6 +8,7 @@ import pedroaba.java.race.Beetle;
 import pedroaba.java.race.Ferrari;
 import pedroaba.java.race.constants.Config;
 import pedroaba.java.race.entities.Car;
+import pedroaba.java.race.entities.PitStop;
 import pedroaba.java.race.entities.Race;
 import pedroaba.java.race.enums.GameEventName;
 import pedroaba.java.race.events.*;
@@ -21,6 +22,7 @@ import processing.core.PApplet;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 
 public class ThreadRacing extends PApplet {
@@ -46,6 +48,8 @@ public class ThreadRacing extends PApplet {
     private ShellImage shellImg;
 
     private SakanaFont sakanaFont;
+
+    private Boolean hasCollisionIdentified = false;
 
     @Override
     public void exit() {
@@ -96,9 +100,16 @@ public class ThreadRacing extends PApplet {
     @Override
     public void draw() {
         background(240);
-        updateCarPositions();
-
         addAppTitle();
+
+        if (hasCollisionIdentified) {
+            drawTrack();
+            updateCarPositions();
+            drawCars();
+            drawCollisionPanel();
+            drawMessages();
+            return;
+        }
 
         if (countdownStarted) {
             long currentTime = System.currentTimeMillis();
@@ -124,6 +135,7 @@ public class ThreadRacing extends PApplet {
             drawTrack();
         }
 
+        updateCarPositions();
         drawCars();
 
         if (raceFinished) {
@@ -186,11 +198,48 @@ public class ThreadRacing extends PApplet {
         Listener<Object> movementListener = getMovementListener();
         Listener<Object> finishListener = getFinishListener();
         Listener<Object> allFinishListener = getAllFinishListener();
+        Listener<Object> pitStopCollisionListener = getPitStopCollisionListener();
 
         dispatcher.addListener(startRaceListener);
         dispatcher.addListener(movementListener);
         dispatcher.addListener(finishListener);
         dispatcher.addListener(allFinishListener);
+        dispatcher.addListener(pitStopCollisionListener);
+    }
+
+    private @NotNull Listener<Object> getPitStopCollisionListener() {
+        Listener<Object> pitStopCollisionListener = new Listener<>(GameEventName.COLLISION_IN_PIT_STOP);
+        pitStopCollisionListener.on((event) -> {
+            PitStopCollisionEvent pitStopCollisionEvent = (PitStopCollisionEvent) event;
+
+            Set<Thread> aliveThreads = Thread.getAllStackTraces().keySet();
+            Set<Thread> threadsToInterrupt = aliveThreads
+                    .stream()
+                    .filter(t -> t instanceof Car || t instanceof PitStop)
+                    .collect(Collectors.toSet());
+
+            for (Thread thread : threadsToInterrupt) {
+                try {
+                    thread.interrupt();
+                } catch (Exception e) {
+                    e.fillInStackTrace();
+                }
+            }
+
+            try {
+                if (raceThread != null && raceThread.isAlive()) {
+                    raceThread.interrupt();
+                }
+            } catch (Exception e) {
+                e.fillInStackTrace();
+            }
+
+            raceMessages.add("Ocorreu uma colisão no pit stop");
+            hasCollisionIdentified = true;
+            raceFinished = true;
+        });
+
+        return pitStopCollisionListener;
     }
 
     private @NotNull Listener<Object> getAllFinishListener() {
@@ -449,7 +498,7 @@ public class ThreadRacing extends PApplet {
         Position panelPosition = new Position(panelX, panelY);
 
         drawPanelBackground(panelPosition, panelSize);
-        drawPanelHeader(panelPosition, headerPanelSize);
+        drawPanelHeader(panelPosition, headerPanelSize, "RESULTADOS", 30, 120);
 
         return new Pair<>(panelPosition, headerPanelSize);
     }
@@ -460,16 +509,6 @@ public class ThreadRacing extends PApplet {
         strokeWeight(2);
         rect(position.x(), position.y(), size.width(), size.height(), 10);
         noStroke();
-    }
-
-    private void drawPanelHeader(@NotNull Position position, @NotNull Size size) {
-        fill(30, 30, 120);
-        rect(position.x(), position.y(), size.width(), size.height(), 10, 10, 0, 0);
-
-        fill(255);
-        textAlign(CENTER, CENTER);
-        textSize(24);
-        text("RESULTADOS", position.x() + size.width() / 2, position.y() + size.height() / 2);
     }
 
     private void drawHeaderDivisionLine(@NotNull Position position, @NotNull Position panelPosition, @NotNull Size size) {
@@ -510,6 +549,43 @@ public class ThreadRacing extends PApplet {
 
         textAlign(RIGHT, CENTER);
         text(FormatEpochSecondToString.formatEpochSecond(finishTime).substring(11), timePosition.x(), timePosition.y());
+    }
+
+    private void drawPanelHeader(@NotNull Position position,
+                                 @NotNull Size size,
+                                 @NotNull String title,
+                                 int r, int b) {
+        fill(r, 30, b);
+        rect(position.x(), position.y(), size.width(), size.height(), 10, 10, 0, 0);
+
+        fill(255);
+        textAlign(CENTER, CENTER);
+        textSize(24);
+        text(title, position.x() + size.width() / 2,
+                position.y() + size.height() / 2);
+    }
+
+    private void drawCollisionPanel() {
+        var headerH = 50f;
+        var bodyH   = 70f;
+        var panelW  = 400f;
+        var panelH  = headerH + bodyH + 20f;  // extra bottom padding
+        var x       = (width  - panelW) / 2f;
+        var y       = (height - panelH) / 2f;
+
+        Position pos      = new Position(x, y);
+        Size     panelSz = new Size(panelW, panelH);
+        Size     headSz  = new Size(panelW, headerH);
+
+        drawPanelBackground(pos, panelSz);
+        drawPanelHeader(pos, headSz, "COLISÃO NO PIT-STOP", 150, 30);
+
+        fill(0);
+        textAlign(CENTER, CENTER);
+        textSize(16);
+        text("Houve uma colisão e %n as threads foram paradas.".formatted(),
+                x + panelW / 2f,
+                y + headerH + bodyH / 2f);
     }
 
     private void drawMessages() {

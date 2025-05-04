@@ -3,10 +3,9 @@ package pedroaba.java.race.entities;
 import org.jetbrains.annotations.Nullable;
 import pedroaba.java.race.constants.Config;
 import pedroaba.java.race.enums.GameEventName;
-import pedroaba.java.race.events.Dispatcher;
-import pedroaba.java.race.events.MovementEvent;
-import pedroaba.java.race.events.RaceFinishEvent;
+import pedroaba.java.race.events.*;
 import pedroaba.java.race.powers.Power;
+import pedroaba.java.race.utils.Sleeper;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,8 +21,9 @@ public abstract class Car extends Thread {
     private double speed;
     private Boolean finishRace = false;
 
-    public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower) {
+    private Boolean isInPitStop = false;
 
+    public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower) {
         if (speed <= 0) {
             throw new IllegalArgumentException("Speed must be greater than 0");
         }
@@ -32,6 +32,16 @@ public abstract class Car extends Thread {
         this.trackLength = trackLength;
         this.speed = speed;
         this.dispatcher = dispatcher;
+
+        Listener<Object> pitStopListener = new Listener<>(GameEventName.STOP_IN_PIT_STOP);
+        pitStopListener.on((_) -> this.onMustStopOnPitStop());
+
+        this.dispatcher.addListener(pitStopListener);
+    }
+
+    private void onMustStopOnPitStop() {
+        this.isInPitStop = true;
+        System.out.printf("%s enter on pit stop%n", this);
     }
 
     public double getSpeed() {
@@ -60,6 +70,16 @@ public abstract class Car extends Thread {
         LocalDateTime endPowerAttackControlTime = LocalDateTime.now();
 
         while (position < trackLength) {
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+
+            if (isInPitStop) {
+                this.dispatcher.emmit(GameEventName.ENTER_IN_PIT_STOP, new CarEnterInPitStop(this));
+                Sleeper.sleep(Integer.toUnsignedLong(3000));
+                this.dispatcher.emmit(GameEventName.EXIT_IN_PIT_STOP, new CarExitInPitStop(this));
+            }
+
             if (ChronoUnit.MILLIS.between(startMovementControlTime, endMovementControlTime) >= Config.TIME_BETWEEN_EACH_MOVEMENT) {
                 position += getSpeed();
                 move(position);
@@ -100,7 +120,7 @@ public abstract class Car extends Thread {
 
     @Override
     public String toString() {
-        return "[CarThreadId: %d | Car Type: %s]".formatted(Thread.currentThread().threadId(), this.getClass().getSimpleName());
+        return "[CarThreadId: %d | Car Type: %s]".formatted(this.threadId(), this.getClass().getSimpleName());
     }
 
     public Boolean isFinishedRace() {
