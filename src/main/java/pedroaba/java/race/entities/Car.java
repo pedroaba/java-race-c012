@@ -12,6 +12,7 @@ import pedroaba.java.race.utils.ConverterUnit;
 import pedroaba.java.race.utils.MechanicTasksGenerator;
 import pedroaba.java.race.utils.Sleeper;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
@@ -32,6 +33,8 @@ public abstract class Car extends Thread {
     private Boolean isInPitStop = false;
     private Boolean hasCollision = false;
     private Integer pitStopTaskDuration;
+
+    private LocalDateTime pitStopStartWaitingTime;
 
     public Car(double speed, Dispatcher<Object> dispatcher, Integer trackLength, Consumer<Object> dispatchToApplyPower, PitStopScheduler pitStopScheduler) {
         if (speed <= 0) {
@@ -109,8 +112,17 @@ public abstract class Car extends Thread {
 
             if (isInPitStop) {
                 if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
+                    this.pitStopStartWaitingTime = LocalDateTime.now();
                     this.pitStopScheduler.register(this);
                     this.semaphore.acquireUninterruptibly();
+                }
+
+                if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
+                    Duration durationOfWait = Duration.between(pitStopStartWaitingTime, LocalDateTime.now());
+
+                    System.out.println("======================== Waiting Time ========================");
+                    System.out.printf("%s - Waiting for %d ms %n", this, durationOfWait.toMillis());
+                    System.out.println("==============================================================");
                 }
 
                 String task = MechanicTasksGenerator.getTaskOnPitStop();
