@@ -121,7 +121,7 @@ public abstract class Car extends Thread {
                     Duration durationOfWait = Duration.between(pitStopStartWaitingTime, LocalDateTime.now());
 
                     System.out.println("======================== Waiting Time ========================");
-                    System.out.printf("%s - Waiting for %d ms %n", this, durationOfWait.toMillis());
+                    System.out.printf("%s - Waiting for %d ms | task duration to do - %d %n", this, durationOfWait.toMillis(), this.getTaskDuration());
                     System.out.println("==============================================================");
                 }
 
@@ -129,7 +129,7 @@ public abstract class Car extends Thread {
                 this.dispatcher.emmit(GameEventName.ENTER_IN_PIT_STOP, new CarEnterInPitStop(this));
                 System.out.printf("%s - Initializing: %s | Duration: %d %n", this, task, this.pitStopTaskDuration);
                 Sleeper.sleep(Integer.toUnsignedLong(ConverterUnit.toMillis(this.pitStopTaskDuration)));
-                System.out.printf("%s - Finishing: %s | Duration: %d %n", this, task, this.pitStopTaskDuration);
+                System.out.printf("%s - Finishing: %s | Duration: %d s %n", this, task, this.pitStopTaskDuration);
                 this.dispatcher.emmit(GameEventName.EXIT_IN_PIT_STOP, new CarExitInPitStop(this));
 
                 if (FeatureFlags.applyFCFSSchedulingAlgorithm || FeatureFlags.applySJFSchedulingAlgorithm) {
